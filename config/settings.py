@@ -12,9 +12,9 @@ load_dotenv(BASE_DIR / '.env')
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-# Reads from environment variable, defaults to False for safety in production
-DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
+# DEBUG MODE: Set to True temporarily to see the exact error on the live site.
+# (Remember to change this back to False later for security!)
+DEBUG = True
 
 # SECURITY: Allow localhost for local dev, and .onrender.com for the live production site
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')
