@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - CEWMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">CEWMS</a>
+            <div class="d-flex">
+                <span class="navbar-text text-light me-3">
+                    Welcome, {{ user.username }} ({{ user.get_user_type_display }})
+                </span>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <h2 class="mb-4">Your Dashboard</h2>
+
+        <!-- ESTATES ADMIN / SYSTEM ADMIN DASHBOARD -->
+        {% if user.is_estates_admin %}
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Complaints</h5>
+                            <p class="card-text display-6">{{ total_complaints }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Review</h5>
+                            <p class="card-text display-6">{{ pending_complaints }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Assigned</h5>
+                            <p class="card-text display-6">{{ assigned_complaints }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">In Progress</h5>
+                            <p class="card-text display-6">{{ in_progress_complaints }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{% url 'admin:complaints_complaint_changelist' %}" class="btn btn-primary btn-lg">Manage All Complaints</a>
+            </div>
+
+        <!-- MAINTENANCE WORKER DASHBOARD -->
+        {% elif user.is_maintenance_worker %}
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-white bg-warning mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Pending Jobs</h5>
+                            <p class="card-text display-6">{{ pending_jobs }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">In Progress</h5>
+                            <p class="card-text display-6">{{ in_progress_jobs }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-white bg-success mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Completed</h5>
+                            <p class="card-text display-6">{{ completed_jobs }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h4 class="mt-4">Your Recent Assignments</h4>
+            {% if my_assignments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Complaint Ref</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Assigned Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in my_assignments|slice:":5" %}
+                                <tr>
+                                    <td>{{ assignment.complaint.reference_number }}</td>
+                                    <td>{{ assignment.complaint.category.name }}</td>
+                                    <td><span class="badge bg-secondary">{{ assignment.get_status_display }}</span></td>
+                                    <td>{{ assignment.assigned_at|date:"M d, Y" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">You currently have no assigned jobs.</div>
+            {% endif %}
+
+            <div class="mt-4">
+                <a href="{% url 'complaints:officer_dashboard' %}" class="btn btn-primary btn-lg">View All My Assigned Jobs</a>
+            </div>
+
+        <!-- STUDENT / STAFF DASHBOARD -->
+        {% else %}
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card text-white bg-primary mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Submitted</h5>
+                            <p class="card-text display-6">{{ total_submitted }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card text-white bg-info mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Active Complaints</h5>
+                            <p class="card-text display-6">{{ active_complaints }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <a href="{% url 'complaints:user_dashboard' %}" class="btn btn-primary me-2">View My Complaints</a>
+                <a href="{% url 'complaints:public_submit' %}" class="btn btn-success">Submit New Complaint</a>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

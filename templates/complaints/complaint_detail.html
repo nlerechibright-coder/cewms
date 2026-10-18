@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint Details - CEWMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'complaints:user_dashboard' %}">CEWMS</a>
+            <div class="d-flex">
+                <a href="{% url 'complaints:user_dashboard' %}" class="btn btn-outline-light btn-sm">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Complaint {{ complaint.reference_number }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6"><strong>Status:</strong> <span class="badge bg-secondary">{{ complaint.get_status_display }}</span></div>
+                    <div class="col-md-6"><strong>Priority:</strong> {{ complaint.get_operational_priority_display }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><strong>Title:</strong> {{ complaint.complaint_title }}</div>
+                    <div class="col-md-6"><strong>Category:</strong> {{ complaint.category.name }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6"><strong>Location:</strong> {{ complaint.location.name }}</div>
+                    <div class="col-md-6"><strong>Submitted:</strong> {{ complaint.created_at|date:"F d, Y H:i" }}</div>
+                </div>
+                <div class="mb-3">
+                    <strong>Description:</strong>
+                    <p class="mt-2 bg-light p-3 rounded">{{ complaint.complaint_details }}</p>
+                </div>
+                {% if complaint.location_desc %}
+                    <div class="mb-3">
+                        <strong>Specific Location Details:</strong> {{ complaint.location_desc }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- NEW: Progress Timeline Section -->
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0">Progress History</h4>
+            </div>
+            <div class="card-body">
+                {% if complaint.status_history.all %}
+                    <ul class="list-group list-group-flush">
+                        {% for history in complaint.status_history.all %}
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong>{{ history.get_status_value_display }}</strong>
+                                    <small class="text-muted">{{ history.changed_at|date:"M d, Y H:i" }}</small>
+                                </div>
+                                {% if history.changed_by %}
+                                    <small class="text-muted">Updated by: {{ history.changed_by.username }}</small>
+                                {% endif %}
+                                {% if history.remarks %}
+                                    <p class="mb-0 mt-1 text-secondary">{{ history.remarks }}</p>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted">No status updates yet. Your complaint is currently under review.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

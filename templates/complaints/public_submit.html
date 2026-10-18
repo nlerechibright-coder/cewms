@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a Complaint - CEWMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5 mb-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">Report a Facility Problem</h4>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">No account required. Please provide as much detail as possible.</p>
+                        
+                        <form method="post" enctype="multipart/form-data" id="complaintForm">
+                            {% csrf_token %}
+                            
+                            <!-- Complaint Title -->
+                            <div class="mb-3">
+                                <label for="{{ form.complaint_title.id_for_label }}" class="form-label">Complaint Title <span class="text-danger">*</span></label>
+                                {{ form.complaint_title }}
+                                {% for error in form.complaint_title.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Location -->
+                            <div class="mb-3">
+                                <label for="{{ form.location.id_for_label }}" class="form-label">Location <span class="text-danger">*</span></label>
+                                {{ form.location }}
+                                {% for error in form.location.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Location Description (Hidden by default) -->
+                            <div class="mb-3" id="location_desc_container" style="display: none;">
+                                <label for="{{ form.location_desc.id_for_label }}" class="form-label">Please specify the location <span class="text-danger">*</span></label>
+                                {{ form.location_desc }}
+                                {% if form.location_desc.help_text %}<div class="form-text">{{ form.location_desc.help_text }}</div>{% endif %}
+                                {% for error in form.location_desc.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Category -->
+                            <div class="mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">Category <span class="text-danger">*</span></label>
+                                {{ form.category }}
+                                {% for error in form.category.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Complaint Details -->
+                            <div class="mb-3">
+                                <label for="{{ form.complaint_details.id_for_label }}" class="form-label">Complaint Details <span class="text-danger">*</span></label>
+                                {{ form.complaint_details }}
+                                {% if form.complaint_details.help_text %}<div class="form-text">{{ form.complaint_details.help_text }}</div>{% endif %}
+                                {% for error in form.complaint_details.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <hr class="my-4">
+                            <h5 class="mb-3">Your Contact Information (Optional)</h5>
+                            <p class="text-muted small">Leave blank to submit anonymously. Providing this helps us contact you for updates.</p>
+
+                            <!-- Full Name -->
+                            <div class="mb-3">
+                                <label for="{{ form.full_name.id_for_label }}" class="form-label">Full Name</label>
+                                {{ form.full_name }}
+                                {% for error in form.full_name.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Contact Address -->
+                            <div class="mb-3">
+                                <label for="{{ form.contact_address.id_for_label }}" class="form-label">Contact Address</label>
+                                {{ form.contact_address }}
+                                {% for error in form.contact_address.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Phone -->
+                            <div class="mb-3">
+                                <label for="{{ form.phone.id_for_label }}" class="form-label">Phone Number</label>
+                                {{ form.phone }}
+                                {% for error in form.phone.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <hr class="my-4">
+
+                            <!-- Urgency -->
+                            <div class="mb-3">
+                                <label for="{{ form.reporter_declared_urgency.id_for_label }}" class="form-label">Urgency Level</label>
+                                {{ form.reporter_declared_urgency }}
+                                {% for error in form.reporter_declared_urgency.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+
+                            <!-- Photo -->
+                            <div class="mb-3">
+                                <label for="{{ form.photo.id_for_label }}" class="form-label">Photo Attachment</label>
+                                {{ form.photo }}
+                                {% if form.photo.help_text %}<div class="form-text">{{ form.photo.help_text }}</div>{% endif %}
+                                {% for error in form.photo.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                            </div>
+                            
+                            <button type="submit" class="btn btn-danger w-100 mt-3">Submit Complaint</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript to handle "Other" location selection -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const locationSelect = document.getElementById('id_location');
+            const locationDescContainer = document.getElementById('location_desc_container');
+            const locationDescInput = document.getElementById('id_location_desc');
+
+            function toggleLocationDesc() {
+                const selectedOption = locationSelect.options[locationSelect.selectedIndex];
+                if (selectedOption && (selectedOption.text.includes('Other') || selectedOption.text.includes('Not Listed'))) {
+                    locationDescContainer.style.display = 'block';
+                    locationDescInput.required = true;
+                } else {
+                    locationDescContainer.style.display = 'none';
+                    locationDescInput.required = false;
+                    locationDescInput.value = '';
+                }
+            }
+
+            // Run on page load (in case of form validation errors)
+            toggleLocationDesc();
+
+            // Run on change
+            locationSelect.addEventListener('change', toggleLocationDesc);
+        });
+    </script>
+</body>
+</html>
