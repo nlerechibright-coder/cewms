@@ -3,7 +3,10 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import CustomUser
 
 class CustomUserCreationForm(UserCreationForm):
-    """Form for ordinary student registration."""
+    """
+    A form that creates a user, with no privileges, from the given username and password.
+    Includes Chapter 3 required fields: full_name and phone.
+    """
     full_name = forms.CharField(
         max_length=150,
         required=True,
@@ -25,14 +28,16 @@ class CustomUserCreationForm(UserCreationForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.user_type = 'STUDENT'
+        user.user_type = 'STUDENT' # Default role for new registrants
         if commit:
             user.save()
         return user
 
 
 class EngineerCreationForm(UserCreationForm):
-    """Form for management to create engineer accounts."""
+    """
+    A secure form for Estates Admin to create Maintenance Worker accounts.
+    """
     full_name = forms.CharField(
         max_length=150,
         required=True,
@@ -41,17 +46,12 @@ class EngineerCreationForm(UserCreationForm):
     phone = forms.CharField(
         max_length=15,
         required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Engineer\'s phone number'})
-    )
-    discipline = forms.ChoiceField(
-        choices=CustomUser.DISCIPLINE_CHOICES,
-        required=True,
-        widget=forms.Select(attrs={'class': 'form-select'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Engineer\'s phonenumber'})
     )
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'email', 'full_name', 'phone', 'discipline', 'password1', 'password2')
+        fields = ('username', 'email', 'full_name', 'phone', 'password1', 'password2')
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
@@ -59,7 +59,7 @@ class EngineerCreationForm(UserCreationForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.user_type = 'MAINTENANCE_WORKER'
+        user.user_type = 'MAINTENANCE_WORKER' # Hardcoded role for this form
         if commit:
             user.save()
         return user
@@ -67,32 +67,33 @@ class EngineerCreationForm(UserCreationForm):
 
 class AdminCreationForm(UserCreationForm):
     """
-    Secure form for creating the initial two Management accounts.
-    Forces user_type to ESTATES_ADMIN and denies superuser privileges.
+    Form for creating the initial 2 Management accounts.
+    CRITICAL: Ensures the account is saved as an ESTATES_ADMIN so it persists correctly.
     """
     full_name = forms.CharField(
         max_length=150,
         required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Administrator full name'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Admin full name'})
     )
     phone = forms.CharField(
         max_length=15,
         required=True,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact phone number'})
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Admin phone number'})
     )
 
     class Meta:
         model = CustomUser
-        fields = ('username', 'full_name', 'phone', 'password1', 'password2')
+        fields = ('username', 'email', 'full_name', 'phone', 'password1', 'password2')
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.user_type = 'ESTATES_ADMIN'
-        user.is_staff = False
-        user.is_superuser = False
+        # CRITICAL FIX: This ensures the account is actually saved as an Admin
+        user.user_type = 'ESTATES_ADMIN' 
+        user.is_staff = True # Required to access admin features if needed
         if commit:
             user.save()
         return user

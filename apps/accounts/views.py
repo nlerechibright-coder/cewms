@@ -56,13 +56,26 @@ def dashboard_view(request):
 
 @estates_admin_required
 def management_dashboard_view(request):
+    """The custom dashboard for Estates Admins (Management)."""
+    
+    # 1. Get the counts for the summary cards
+    total_complaints = Complaint.objects.count()
+    pending_complaints = Complaint.objects.filter(status='SUBMITTED').count()
+    assigned_complaints = Complaint.objects.filter(status='ASSIGNED').count()
+    in_progress_complaints = Complaint.objects.filter(status='IN_PROGRESS').count()
+    resolved_complaints = Complaint.objects.filter(status='RESOLVED_PENDING_VERIFICATION').count()
+    
+    # 2. FIX: Query the actual complaints to display in a list
+    recent_complaints = Complaint.objects.select_related('category', 'location').order_by('-created_at')[:10]
+
     context = {
         'user': request.user,
-        'total_complaints': Complaint.objects.count(),
-        'pending_complaints': Complaint.objects.filter(status='SUBMITTED').count(),
-        'assigned_complaints': Complaint.objects.filter(status='ASSIGNED').count(),
-        'in_progress_complaints': Complaint.objects.filter(status='IN_PROGRESS').count(),
-        'resolved_complaints': Complaint.objects.filter(status='RESOLVED_PENDING_VERIFICATION').count(),
+        'total_complaints': total_complaints,
+        'pending_complaints': pending_complaints,
+        'assigned_complaints': assigned_complaints,
+        'in_progress_complaints': in_progress_complaints,
+        'resolved_complaints': resolved_complaints,
+        'recent_complaints': recent_complaints, # Pass the list to the template
     }
     return render(request, 'accounts/management_dashboard.html', context)
 
