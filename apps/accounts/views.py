@@ -5,8 +5,10 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 from django.contrib.auth import views as auth_views
 from django.contrib import messages
+from django.db import transaction
+from django.http import HttpResponseNotFound
 from .models import CustomUser
-from .forms import CustomUserCreationForm, EngineerCreationForm
+from .forms import CustomUserCreationForm, EngineerCreationForm, AdminCreationForm
 from apps.complaints.models import Complaint, WorkAssignment
 from apps.accounts.decorators import estates_admin_required
 
@@ -32,6 +34,13 @@ class CustomLoginView(auth_views.LoginView):
             return reverse('complaints:officer_dashboard')
         else:
             return reverse('accounts:dashboard')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Check if we still need to create admin accounts (limit is 2)
+        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
+        context['can_create_admin'] = admin_count < 2
+        return context
 
 
 @login_required
@@ -89,6 +98,31 @@ def create_engineer_view(request):
     else:
         form = EngineerCreationForm()
     return render(request, 'accounts/create_engineer.html', {'form': form})
+
+
+def create_admin_view(request):
+    """
+    Temporary view for creating the initial two Management accounts.
+    Enforces a strict limit of 2 accounts.
+    """
+    with transaction.atomic():
+        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
+        
+        if admin_count >= 2:
+            # If limit reached, show a message or redirect. 
+            # We return a specific template to inform the user setup is complete.
+            return render(request, 'accounts/setup_complete.html')
+
+        if request.method == 'POST':
+            form = AdminCreationForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Management account created successfully. Please log in.")
+                return redirect('accounts:login')
+        else:
+            form = AdminCreationForm()
+
+    return render(request, 'accounts/setup_management.html', {'form': form})
 
 
 def custom_logout_view(request):
