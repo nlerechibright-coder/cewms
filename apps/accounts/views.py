@@ -1,4 +1,3 @@
-import os
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -6,10 +5,8 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 from django.contrib.auth import views as auth_views
 from django.contrib import messages
-from django.db import transaction
-from django.http import HttpResponseNotFound
 from .models import CustomUser
-from .forms import CustomUserCreationForm, EngineerCreationForm, SetupManagementForm
+from .forms import CustomUserCreationForm, EngineerCreationForm
 from apps.complaints.models import Complaint, WorkAssignment
 from apps.accounts.decorators import estates_admin_required
 
@@ -35,14 +32,6 @@ class CustomLoginView(auth_views.LoginView):
             return reverse('complaints:officer_dashboard')
         else:
             return reverse('accounts:dashboard')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
-        context['management_slots_available'] = admin_count < 2
-        if context['management_slots_available']:
-            context['setup_secret'] = os.getenv('SETUP_SECRET', '')
-        return context
 
 
 @login_required
@@ -71,7 +60,6 @@ def management_dashboard_view(request):
 
 @estates_admin_required
 def engineer_list_view(request):
-    """View for Estates Admin to view and manage existing maintenance engineers."""
     engineers = CustomUser.objects.filter(user_type='MAINTENANCE_WORKER').order_by('discipline', 'username')
     
     if request.method == 'POST':
@@ -101,28 +89,6 @@ def create_engineer_view(request):
     else:
         form = EngineerCreationForm()
     return render(request, 'accounts/create_engineer.html', {'form': form})
-
-
-def setup_management_view(request):
-    setup_secret = os.getenv('SETUP_SECRET')
-    if not setup_secret or request.GET.get('secret') != setup_secret:
-        return HttpResponseNotFound("Page not found.")
-
-    with transaction.atomic():
-        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
-        if admin_count >= 2:
-            return HttpResponseNotFound("Setup complete. Management accounts already provisioned.")
-
-        if request.method == 'POST':
-            form = SetupManagementForm(request.POST)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Management account created successfully. Please log in.")
-                return redirect('accounts:login')
-        else:
-            form = SetupManagementForm()
-
-    return render(request, 'accounts/setup_management.html', {'form': form})
 
 
 def custom_logout_view(request):

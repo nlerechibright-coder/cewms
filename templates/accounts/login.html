@@ -45,10 +45,6 @@
                 <p class="text-gray-600">
                     Don't have an account? 
                     <a href="{% url 'accounts:register' %}" class="font-medium text-indigo-600 hover:text-indigo-500">Register here</a>.
-                    {% if management_slots_available and setup_secret %}
-                        <span class="text-gray-300">|</span>
-                        <a href="{% url 'accounts:setup_management' %}?secret={{ setup_secret }}" class="font-medium text-gray-400 hover:text-gray-600">Initial Setup</a>
-                    {% endif %}
                 </p>
             </div>
         </div>
