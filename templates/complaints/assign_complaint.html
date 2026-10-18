@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Complaint - CEWMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Assign Complaint: {{ complaint.reference_number }}</h4>
+                        <a href="{% url 'complaints:management_complaints' %}" class="btn btn-sm btn-light">Back to List</a>
+                    </div>
+                    <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <h5 class="mb-2">{{ complaint.complaint_title }}</h5>
+                            <p class="mb-1"><strong>Category:</strong> {{ complaint.category.name }}</p>
+                            <p class="mb-1"><strong>Location:</strong> {{ complaint.location.name }} {% if complaint.location_desc %}({{ complaint.location_desc }}){% endif %}</p>
+                            <p class="mb-0"><strong>Details:</strong> {{ complaint.complaint_details }}</p>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="engineer" class="form-label">Select Engineer <span class="text-danger">*</span></label>
+                                <select name="engineer" id="engineer" class="form-select" required>
+                                    <option value="">-- Choose an Engineer --</option>
+                                    {% regroup engineers by get_discipline_display as discipline_list %}
+                                    {% for discipline in discipline_list %}
+                                        <optgroup label="{{ discipline.grouper|default:'Unspecified Discipline' }}">
+                                            {% for eng in discipline.list %}
+                                                <option value="{{ eng.id }}">{{ eng.full_name|default:eng.username }} ({{ eng.username }})</option>
+                                            {% endfor %}
+                                        </optgroup>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Engineers are grouped by their registered maintenance discipline.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Assignment Notes / Instructions</label>
+                                <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="e.g., Check the main valve first."></textarea>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg">Confirm Assignment</button>
+                            </div>
+                            <p class="text-muted small mt-2 text-center">This will update the complaint status to 'Assigned' and notify the engineer.</p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

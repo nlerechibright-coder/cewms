@@ -4,28 +4,25 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from django.db.models import Q
 from .models import Complaint, ComplaintAttachment, WorkAssignment, StatusHistory
 from .forms import PublicComplaintForm, ComplaintTrackingForm
-from apps.accounts.decorators import maintenance_worker_required
+from apps.accounts.models import CustomUser
+from apps.accounts.decorators import estates_admin_required, maintenance_worker_required
 
 def generate_reference_number():
-    """Generate a unique, readable reference number like CMP-20261015-XXXX."""
     date_str = timezone.now().strftime('%Y%m%d')
-    random_str = secrets.token_hex(2).upper()  # 4 random hex chars
+    random_str = secrets.token_hex(2).upper()
     return f"CMP-{date_str}-{random_str}"
 
 def generate_tracking_token_hash(raw_token):
-    """Hash the tracking token for secure storage."""
     return hashlib.sha256(raw_token.encode('utf-8')).hexdigest()
 
 def public_submit_view(request):
-    """Handles the public complaint submission (and logged-in user submission)."""
     if request.method == 'POST':
         form = PublicComplaintForm(request.POST, request.FILES)
         if form.is_valid():
             complaint = form.save(commit=False)
-            
-            # NEW: If the user is logged in, link the complaint to their account
             if request.user.is_authenticated:
                 complaint.reporter = request.user
             
@@ -52,13 +49,10 @@ def public_submit_view(request):
 
 
 def submission_success_view(request):
-    """Displays the confirmation page with the reference number and tracking token."""
     ref = request.session.get('last_complaint_ref')
     token = request.session.get('last_tracking_token')
-    
     if not ref or not token:
         return redirect('complaints:public_submit')
-        
     return render(request, 'complaints/submission_success.html', {
         'reference_number': ref,
         'tracking_token': token
@@ -66,34 +60,27 @@ def submission_success_view(request):
 
 
 def track_complaint_view(request):
-    """Allows anonymous users to track their complaint using reference number and token."""
     if request.method == 'POST':
         form = ComplaintTrackingForm(request.POST)
         if form.is_valid():
             ref = form.cleaned_data['reference_number']
             token = form.cleaned_data['tracking_token']
             token_hash = generate_tracking_token_hash(token)
-            
             try:
-                complaint = Complaint.objects.get(
-                    reference_number=ref,
-                    tracking_token_hash=token_hash
-                )
+                complaint = Complaint.objects.get(reference_number=ref, tracking_token_hash=token_hash)
                 return render(request, 'complaints/tracking_result.html', {
                     'complaint': complaint,
-                    'show_full_details': False  # Anonymous users see limited info
+                    'show_full_details': False
                 })
             except Complaint.DoesNotExist:
                 messages.error(request, "Invalid reference number or tracking token. Please check and try again.")
     else:
         form = ComplaintTrackingForm()
-    
     return render(request, 'complaints/track_complaint.html', {'form': form})
 
 
 @login_required
 def user_dashboard_view(request):
-    """Dashboard for registered users to see their own complaints."""
     user_complaints = Complaint.objects.filter(reporter=request.user).order_by('-created_at')
     return render(request, 'complaints/user_dashboard.html', {
         'complaints': user_complaints,
@@ -103,32 +90,71 @@ def user_dashboard_view(request):
 
 @login_required
 def complaint_detail_view(request, reference_number):
-    """Detailed view of a specific complaint (only accessible by the owner)."""
     complaint = get_object_or_404(Complaint, reference_number=reference_number)
-    
-    # Security check: only the reporter can view their own complaint
     if complaint.reporter != request.user:
         messages.error(request, "You do not have permission to view this complaint.")
         return redirect('complaints:user_dashboard')
+    return render(request, 'complaints/complaint_detail.html', {'complaint': complaint})
+
+
+@estates_admin_required
+def management_complaints_view(request):
+    complaints = Complaint.objects.all().select_related('category', 'location', 'reporter').order_by('-created_at')
+    return render(request, 'complaints/management_complaints.html', {'complaints': complaints})
+
+
+@estates_admin_required
+def assign_complaint_view(request, complaint_id):
+    complaint = get_object_or_404(Complaint, id=complaint_id)
+    engineers = CustomUser.objects.filter(user_type='MAINTENANCE_WORKER', is_active=True).order_by('discipline', 'username')
     
-    return render(request, 'complaints/complaint_detail.html', {
-        'complaint': complaint
+    if request.method == 'POST':
+        engineer_id = request.POST.get('engineer')
+        notes = request.POST.get('notes', '')
+        
+        if engineer_id:
+            engineer = get_object_or_404(CustomUser, id=engineer_id, user_type='MAINTENANCE_WORKER')
+            
+            WorkAssignment.objects.create(
+                complaint=complaint,
+                officer=engineer,
+                assigned_by=request.user,
+                status='PENDING',
+                notes=notes
+            )
+            
+            old_status = complaint.status
+            complaint.status = 'ASSIGNED'
+            complaint.save()
+            
+            StatusHistory.objects.create(
+                complaint=complaint,
+                status_value='ASSIGNED',
+                changed_by=request.user,
+                remarks=f"Assigned to {engineer.full_name or engineer.username} ({engineer.get_discipline_display()}). Notes: {notes}"
+            )
+            
+            messages.success(request, f"Complaint successfully assigned to {engineer.username}.")
+            return redirect('complaints:management_complaints')
+        else:
+            messages.error(request, "Please select an engineer to assign.")
+            
+    return render(request, 'complaints/assign_complaint.html', {
+        'complaint': complaint,
+        'engineers': engineers
     })
 
 
 @maintenance_worker_required
 def officer_dashboard_view(request):
-    """Dashboard for maintenance workers to see their assigned jobs."""
     assignments = WorkAssignment.objects.filter(
         officer=request.user
     ).select_related('complaint', 'complaint__category', 'complaint__location').order_by('-assigned_at')
-    
     return render(request, 'complaints/officer_dashboard.html', {'assignments': assignments})
 
 
 @maintenance_worker_required
 def officer_job_detail_view(request, assignment_id):
-    """Detail view for a specific job assignment, allowing status updates."""
     assignment = get_object_or_404(WorkAssignment, id=assignment_id, officer=request.user)
     
     if request.method == 'POST':

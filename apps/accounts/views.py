@@ -1,66 +1,130 @@
-from django.shortcuts import render, redirect
+import os
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
-from .forms import CustomUserCreationForm
+from django.contrib.auth import views as auth_views
+from django.contrib import messages
+from django.db import transaction
+from django.http import HttpResponseNotFound
+from .models import CustomUser
+from .forms import CustomUserCreationForm, EngineerCreationForm, SetupManagementForm
 from apps.complaints.models import Complaint, WorkAssignment
+from apps.accounts.decorators import estates_admin_required
 
 class RegisterView(CreateView):
-    """
-    Handles user registration. 
-    If successful, logs the user in and redirects to their dashboard.
-    """
     form_class = CustomUserCreationForm
     success_url = reverse_lazy('accounts:dashboard')
     template_name = 'accounts/register.html'
 
     def form_valid(self, form):
-        # Save the user and log them in automatically
         response = super().form_valid(form)
         login(self.request, self.object)
         return response
 
 
+class CustomLoginView(auth_views.LoginView):
+    template_name = 'accounts/login.html'
+    
+    def get_success_url(self):
+        user = self.request.user
+        if user.is_estates_admin:
+            return reverse('accounts:management_dashboard')
+        elif user.is_maintenance_worker:
+            return reverse('complaints:officer_dashboard')
+        else:
+            return reverse('accounts:dashboard')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
+        context['management_slots_available'] = admin_count < 2
+        if context['management_slots_available']:
+            context['setup_secret'] = os.getenv('SETUP_SECRET', '')
+        return context
+
+
 @login_required
 def dashboard_view(request):
-    """
-    The protected dashboard for authenticated users.
-    Shows role-specific information and navigation.
-    """
     user = request.user
     context = {'user': user}
-    
-    # Role-specific dashboard data
-    if user.is_estates_admin:
-        # Estates Admin: Show complaint management stats
-        context['total_complaints'] = Complaint.objects.count()
-        context['pending_complaints'] = Complaint.objects.filter(status='SUBMITTED').count()
-        context['assigned_complaints'] = Complaint.objects.filter(status='ASSIGNED').count()
-        context['in_progress_complaints'] = Complaint.objects.filter(status='IN_PROGRESS').count()
-        context['resolved_complaints'] = Complaint.objects.filter(status='RESOLVED_PENDING_VERIFICATION').count()
-        
-    elif user.is_maintenance_worker:
-        # Maintenance Worker: Show their assigned jobs
-        my_assignments = WorkAssignment.objects.filter(officer=user).select_related('complaint')
-        context['my_assignments'] = my_assignments
-        context['pending_jobs'] = my_assignments.filter(status='PENDING').count()
-        context['in_progress_jobs'] = my_assignments.filter(status='IN_PROGRESS').count()
-        context['completed_jobs'] = my_assignments.filter(status='COMPLETED').count()
-        
-    else:
-        # Student/Staff: Show their submitted complaints
-        my_complaints = Complaint.objects.filter(reporter=user)
-        context['my_complaints'] = my_complaints
-        context['total_submitted'] = my_complaints.count()
-        context['active_complaints'] = my_complaints.exclude(status__in=['CLOSED', 'REJECTED']).count()
-    
+    my_complaints = Complaint.objects.filter(reporter=user)
+    context['my_complaints'] = my_complaints
+    context['total_submitted'] = my_complaints.count()
+    context['active_complaints'] = my_complaints.exclude(status__in=['CLOSED', 'REJECTED']).count()
     return render(request, 'accounts/dashboard.html', context)
 
 
+@estates_admin_required
+def management_dashboard_view(request):
+    context = {
+        'user': request.user,
+        'total_complaints': Complaint.objects.count(),
+        'pending_complaints': Complaint.objects.filter(status='SUBMITTED').count(),
+        'assigned_complaints': Complaint.objects.filter(status='ASSIGNED').count(),
+        'in_progress_complaints': Complaint.objects.filter(status='IN_PROGRESS').count(),
+        'resolved_complaints': Complaint.objects.filter(status='RESOLVED_PENDING_VERIFICATION').count(),
+    }
+    return render(request, 'accounts/management_dashboard.html', context)
+
+
+@estates_admin_required
+def engineer_list_view(request):
+    """View for Estates Admin to view and manage existing maintenance engineers."""
+    engineers = CustomUser.objects.filter(user_type='MAINTENANCE_WORKER').order_by('discipline', 'username')
+    
+    if request.method == 'POST':
+        engineer_id = request.POST.get('engineer_id')
+        action = request.POST.get('action')
+        
+        if engineer_id and action in ['activate', 'deactivate']:
+            engineer = get_object_or_404(CustomUser, id=engineer_id, user_type='MAINTENANCE_WORKER')
+            engineer.is_active = (action == 'activate')
+            engineer.save()
+            status = "activated" if action == 'activate' else "deactivated"
+            messages.success(request, f"Engineer {engineer.username} has been {status}.")
+            
+        return redirect('accounts:engineer_list')
+        
+    return render(request, 'accounts/engineer_list.html', {'engineers': engineers})
+
+
+@estates_admin_required
+def create_engineer_view(request):
+    if request.method == 'POST':
+        form = EngineerCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "New engineer account created successfully!")
+            return redirect('accounts:engineer_list')
+    else:
+        form = EngineerCreationForm()
+    return render(request, 'accounts/create_engineer.html', {'form': form})
+
+
+def setup_management_view(request):
+    setup_secret = os.getenv('SETUP_SECRET')
+    if not setup_secret or request.GET.get('secret') != setup_secret:
+        return HttpResponseNotFound("Page not found.")
+
+    with transaction.atomic():
+        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
+        if admin_count >= 2:
+            return HttpResponseNotFound("Setup complete. Management accounts already provisioned.")
+
+        if request.method == 'POST':
+            form = SetupManagementForm(request.POST)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Management account created successfully. Please log in.")
+                return redirect('accounts:login')
+        else:
+            form = SetupManagementForm()
+
+    return render(request, 'accounts/setup_management.html', {'form': form})
+
+
 def custom_logout_view(request):
-    """
-    Handles user logout securely.
-    """
     logout(request)
     return redirect('accounts:login')

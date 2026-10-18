@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Engineers - CEWMS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'accounts:management_dashboard' %}">CEWMS Management</a>
+            <div class="d-flex">
+                <span class="navbar-text text-light me-3">Welcome, {{ user.username }}</span>
+                <form method="post" action="{% url 'accounts:logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Registered Maintenance Engineers</h2>
+            <div>
+                <a href="{% url 'accounts:create_engineer' %}" class="btn btn-success me-2">Register New Engineer</a>
+                <a href="{% url 'accounts:management_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card shadow">
+            <div class="card-body">
+                {% if engineers %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Discipline</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for engineer in engineers %}
+                                    <tr>
+                                        <td>{{ engineer.username }}</td>
+                                        <td>{{ engineer.full_name|default:"N/A" }}</td>
+                                        <td><span class="badge bg-info text-dark">{{ engineer.get_discipline_display }}</span></td>
+                                        <td>{{ engineer.phone|default:"N/A" }}</td>
+                                        <td>
+                                            {% if engineer.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="engineer_id" value="{{ engineer.id }}">
+                                                {% if engineer.is_active %}
+                                                    <input type="hidden" name="action" value="deactivate">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Deactivate this engineer? They will no longer be able to log in or receive assignments.');">Deactivate</button>
+                                                {% else %}
+                                                    <input type="hidden" name="action" value="activate">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                                {% endif %}
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info text-center">
+                        No maintenance engineers registered yet. 
+                        <a href="{% url 'accounts:create_engineer' %}" class="alert-link">Register your first engineer</a>.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

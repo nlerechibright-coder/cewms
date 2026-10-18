@@ -1,19 +1,15 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
 from . import views
 
 app_name = 'accounts'
 
 urlpatterns = [
-    # Registration
     path('register/', views.RegisterView.as_view(), name='register'),
-    
-    # Login (using Django's secure built-in view)
-    path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
-    
-    # Logout
+    path('login/', views.CustomLoginView.as_view(), name='login'),
     path('logout/', views.custom_logout_view, name='logout'),
-    
-    # Protected Dashboard
     path('dashboard/', views.dashboard_view, name='dashboard'),
+    path('management/dashboard/', views.management_dashboard_view, name='management_dashboard'),
+    path('engineers/', views.engineer_list_view, name='engineer_list'),
+    path('create-engineer/', views.create_engineer_view, name='create_engineer'),
+    path('setup-management/', views.setup_management_view, name='setup_management'),
 ]

@@ -3,10 +3,6 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import CustomUser
 
 class CustomUserCreationForm(UserCreationForm):
-    """
-    A form that creates a user, with no privileges, from the given username and password.
-    Includes Chapter 3 required fields: full_name and phone.
-    """
     full_name = forms.CharField(
         max_length=150,
         required=True,
@@ -28,7 +24,73 @@ class CustomUserCreationForm(UserCreationForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.user_type = 'STUDENT' # Default role for new registrants
+        user.user_type = 'STUDENT'
+        if commit:
+            user.save()
+        return user
+
+
+class EngineerCreationForm(UserCreationForm):
+    full_name = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Engineer\'s full name'})
+    )
+    phone = forms.CharField(
+        max_length=15,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Engineer\'s phone number'})
+    )
+    discipline = forms.ChoiceField(
+        choices=CustomUser.DISCIPLINE_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('username', 'email', 'full_name', 'phone', 'discipline', 'password1', 'password2')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.user_type = 'MAINTENANCE_WORKER'
+        if commit:
+            user.save()
+        return user
+
+
+class SetupManagementForm(UserCreationForm):
+    """
+    Secure form for initial provisioning of Estates Admin accounts.
+    Explicitly denies Django superuser/staff privileges.
+    """
+    full_name = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Administrator full name'})
+    )
+    phone = forms.CharField(
+        max_length=15,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Contact phone number'})
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ('username', 'full_name', 'phone', 'password1', 'password2')
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.user_type = 'ESTATES_ADMIN'
+        user.is_staff = False
+        user.is_superuser = False
         if commit:
             user.save()
         return user

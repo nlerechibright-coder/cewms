@@ -13,4 +13,8 @@ urlpatterns = [
     # Officer Workflow URLs
     path('officer/dashboard/', views.officer_dashboard_view, name='officer_dashboard'),
     path('officer/jobs/<int:assignment_id>/', views.officer_job_detail_view, name='officer_job_detail'),
+    
+    # Management Workflow URLs
+    path('management/complaints/', views.management_complaints_view, name='management_complaints'),
+    path('management/assign/<int:complaint_id>/', views.assign_complaint_view, name='assign_complaint'),
 ]
