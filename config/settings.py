@@ -16,8 +16,8 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key')
 # Reads from environment variable, defaults to False for safety in production
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# SECURITY: Render will provide the allowed host (e.g., yourapp.onrender.com)
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# SECURITY: Allow localhost for local dev, and .onrender.com for the live production site
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.onrender.com').split(',')
 
 # Application definition
 DJANGO_APPS = [
