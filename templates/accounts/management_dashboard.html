@@ -89,7 +89,7 @@
                                         <td><span class="badge bg-secondary">{{ complaint.get_status_display }}</span></td>
                                         <td>{{ complaint.created_at|date:"M d, Y" }}</td>
                                         <td>
-                                            <a href="/admin/complaints/complaint/{{ complaint.id }}/change/" class="btn btn-sm btn-outline-primary">Manage</a>
+                                            <a href="{% url 'complaints:assign_complaint' complaint.id %}" class="btn btn-sm btn-outline-primary">Review / Assign</a>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -110,19 +110,19 @@
                         <h5 class="mb-0">Staff Management</h5>
                     </div>
                     <div class="card-body">
-                        <p>Need to hire more engineers or maintenance staff? Create their accounts here.</p>
-                        <a href="{% url 'accounts:create_engineer' %}" class="btn btn-primary w-100">Create New Engineer Account</a>
+                        <p>Need to hire more engineers or maintenance staff? Manage their CEWMS accounts here.</p>
+                        <a href="{% url 'accounts:engineer_list' %}" class="btn btn-primary w-100">Manage Engineer Accounts</a>
                     </div>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="card shadow">
                     <div class="card-header bg-secondary text-white">
-                        <h5 class="mb-0">System Administration</h5>
+                        <h5 class="mb-0">Complaint Management</h5>
                     </div>
                     <div class="card-body">
-                        <p>Access the full database backend to manage categories, locations, and advanced settings.</p>
-                        <a href="/admin/" class="btn btn-outline-dark w-100">Open Admin Panel</a>
+                        <p>Review submitted complaints, inspect their details, and assign them to engineers.</p>
+                        <a href="{% url 'complaints:management_complaints' %}" class="btn btn-outline-dark w-100">Manage All Complaints</a>
                     </div>
                 </div>
             </div>
