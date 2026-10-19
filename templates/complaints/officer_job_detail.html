@@ -46,25 +46,7 @@
                     </div>
                 {% endif %}
 
-                <!-- NEW: Attachments / Photos Section for Engineers -->
-                {% if assignment.complaint.attachments.all %}
-                    <hr>
-                    <h5 class="mb-3">Attached Photos</h5>
-                    <div class="row">
-                        {% for attachment in assignment.complaint.attachments.all %}
-                            <div class="col-md-4 mb-3">
-                                <div class="card">
-                                    <img src="{{ attachment.file.url }}" class="card-img-top" alt="Complaint Photo" style="max-height: 250px; object-fit: cover;">
-                                    <div class="card-body p-2">
-                                        <small class="text-muted">Uploaded: {{ attachment.uploaded_at|date:"M d, Y" }}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="alert alert-warning">No photos were attached to this complaint.</div>
-                {% endif %}
+                {% include "complaints/_attachments.html" with complaint=assignment.complaint %}
             </div>
         </div>
 

@@ -39,6 +39,7 @@
                         <div class="mb-3">
                             <strong>Submitted:</strong> {{ complaint.created_at|date:"F d, Y H:i" }}
                         </div>
+                        {% include "complaints/_attachments.html" with complaint=complaint %}
                         
                         <a href="{% url 'complaints:track_complaint' %}" class="btn btn-outline-primary mt-3">Track Another</a>
                     </div>

@@ -30,6 +30,7 @@
                             <th>Complaint Ref</th>
                             <th>Title</th>
                             <th>Category</th>
+                            <th>Photo</th>
                             <th>Location</th>
                             <th>Job Status</th>
                             <th>Assigned Date</th>
@@ -42,6 +43,16 @@
                                 <td>{{ assignment.complaint.reference_number }}</td>
                                 <td>{{ assignment.complaint.complaint_title|truncatechars:30 }}</td>
                                 <td>{{ assignment.complaint.category.name }}</td>
+                                <td>
+                                    {% for attachment in assignment.complaint.attachments.all %}
+                                        {% if forloop.first %}
+                                            <img src="{% url 'complaints:attachment_image' attachment.id %}" alt="Photo for {{ assignment.complaint.reference_number }}" class="complaint-thumbnail" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                            <span class="text-muted small" hidden>Unavailable</span>
+                                        {% endif %}
+                                    {% empty %}
+                                        <span class="text-muted small">No photo</span>
+                                    {% endfor %}
+                                </td>
                                 <td>{{ assignment.complaint.location.name }}</td>
                                 <td><span class="badge bg-secondary">{{ assignment.get_status_display }}</span></td>
                                 <td>{{ assignment.assigned_at|date:"M d, Y" }}</td>
@@ -57,5 +68,13 @@
             <div class="alert alert-info mt-3">You currently have no assigned jobs.</div>
         {% endif %}
     </div>
+    <style>
+        .complaint-thumbnail {
+            width: 5rem;
+            height: 4rem;
+            max-width: 100%;
+            object-fit: contain;
+        }
+    </style>
 </body>
 </html>

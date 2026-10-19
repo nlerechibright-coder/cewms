@@ -1,0 +1,29 @@
+<section class="complaint-attachments mb-4" aria-label="Complaint photos">
+    <h5 class="mb-3">Attached Photos</h5>
+    {% for attachment in complaint.attachments.all %}
+        <figure class="mb-3">
+            <img
+                src="{% url 'complaints:attachment_image' attachment.id %}"
+                alt="Photo attached to complaint {{ complaint.reference_number }}"
+                class="complaint-attachment-image"
+                loading="lazy"
+                onerror="this.hidden=true; this.parentElement.querySelector('.complaint-attachment-fallback').hidden=false;"
+            >
+            <figcaption class="small text-muted mt-1">Uploaded {{ attachment.uploaded_at|date:"M d, Y" }}</figcaption>
+            <p class="complaint-attachment-fallback text-muted mb-0" hidden>Photo unavailable.</p>
+        </figure>
+    {% empty %}
+        <p class="text-muted mb-0">No photo was attached to this complaint.</p>
+    {% endfor %}
+</section>
+
+<style>
+    .complaint-attachment-image {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        max-height: 28rem;
+        object-fit: contain;
+        object-position: left center;
+    }
+</style>

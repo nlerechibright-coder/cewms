@@ -30,6 +30,7 @@
                             <th>Reference</th>
                             <th>Title</th>
                             <th>Category</th>
+                            <th>Photo</th>
                             <th>Location</th>
                             <th>Status</th>
                             <th>Submitted</th>
@@ -42,6 +43,16 @@
                                 <td>{{ complaint.reference_number }}</td>
                                 <td>{{ complaint.complaint_title|truncatechars:30 }}</td>
                                 <td>{{ complaint.category.name }}</td>
+                                <td>
+                                    {% for attachment in complaint.attachments.all %}
+                                        {% if forloop.first %}
+                                            <img src="{% url 'complaints:attachment_image' attachment.id %}" alt="Photo for {{ complaint.reference_number }}" class="complaint-thumbnail" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                            <span class="text-muted small" hidden>Unavailable</span>
+                                        {% endif %}
+                                    {% empty %}
+                                        <span class="text-muted small">No photo</span>
+                                    {% endfor %}
+                                </td>
                                 <td>
                                     {{ complaint.location.name }}
                                     {% if complaint.location_desc %}
@@ -64,5 +75,13 @@
             </div>
         {% endif %}
     </div>
+    <style>
+        .complaint-thumbnail {
+            width: 5rem;
+            height: 4rem;
+            max-width: 100%;
+            object-fit: contain;
+        }
+    </style>
 </body>
 </html>

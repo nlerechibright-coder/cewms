@@ -39,7 +39,7 @@ class CustomLoginView(auth_views.LoginView):
 def dashboard_view(request):
     user = request.user
     context = {'user': user}
-    my_complaints = Complaint.objects.filter(reporter=user)
+    my_complaints = Complaint.objects.filter(reporter=user).prefetch_related('attachments')
     context['my_complaints'] = my_complaints
     context['total_submitted'] = my_complaints.count()
     context['active_complaints'] = my_complaints.exclude(status__in=['CLOSED', 'REJECTED']).count()
@@ -58,7 +58,7 @@ def management_dashboard_view(request):
     resolved_complaints = Complaint.objects.filter(status='RESOLVED_PENDING_VERIFICATION').count()
     
     # 2. FIX: Query the actual complaints to display in a list
-    recent_complaints = Complaint.objects.select_related('category', 'location').order_by('-created_at')[:10]
+    recent_complaints = Complaint.objects.select_related('category', 'location').prefetch_related('attachments').order_by('-created_at')[:10]
 
     context = {
         'user': request.user,

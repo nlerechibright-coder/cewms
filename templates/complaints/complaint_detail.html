@@ -43,6 +43,7 @@
                         <strong>Specific Location Details:</strong> {{ complaint.location_desc }}
                     </div>
                 {% endif %}
+                {% include "complaints/_attachments.html" with complaint=complaint %}
             </div>
         </div>
 

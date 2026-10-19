@@ -28,6 +28,7 @@
                             <p class="mb-1"><strong>Location:</strong> {{ complaint.location.name }} {% if complaint.location_desc %}({{ complaint.location_desc }}){% endif %}</p>
                             <p class="mb-0"><strong>Details:</strong> {{ complaint.complaint_details }}</p>
                         </div>
+                        {% include "complaints/_attachments.html" with complaint=complaint %}
 
                         <form method="post">
                             {% csrf_token %}

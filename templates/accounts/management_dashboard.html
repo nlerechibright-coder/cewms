@@ -75,6 +75,7 @@
                                     <th>Reference</th>
                                     <th>Title</th>
                                     <th>Category</th>
+                                    <th>Photo</th>
                                     <th>Status</th>
                                     <th>Submitted</th>
                                     <th>Action</th>
@@ -86,6 +87,16 @@
                                         <td>{{ complaint.reference_number }}</td>
                                         <td>{{ complaint.complaint_title|truncatechars:30 }}</td>
                                         <td>{{ complaint.category.name }}</td>
+                                        <td>
+                                            {% for attachment in complaint.attachments.all %}
+                                                {% if forloop.first %}
+                                                    <img src="{% url 'complaints:attachment_image' attachment.id %}" alt="Photo for {{ complaint.reference_number }}" class="complaint-thumbnail" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                                    <span class="text-muted small" hidden>Unavailable</span>
+                                                {% endif %}
+                                            {% empty %}
+                                                <span class="text-muted small">No photo</span>
+                                            {% endfor %}
+                                        </td>
                                         <td><span class="badge bg-secondary">{{ complaint.get_status_display }}</span></td>
                                         <td>{{ complaint.created_at|date:"M d, Y" }}</td>
                                         <td>
@@ -128,5 +139,13 @@
             </div>
         </div>
     </div>
+    <style>
+        .complaint-thumbnail {
+            width: 5rem;
+            height: 4rem;
+            max-width: 100%;
+            object-fit: contain;
+        }
+    </style>
 </body>
 </html>

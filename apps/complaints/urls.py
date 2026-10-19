@@ -7,6 +7,7 @@ urlpatterns = [
     path('submit/', views.public_submit_view, name='public_submit'),
     path('submit/success/', views.submission_success_view, name='submission_success'),
     path('track/', views.track_complaint_view, name='track_complaint'),
+    path('attachments/<int:attachment_id>/image/', views.attachment_image_view, name='attachment_image'),
     path('my-complaints/', views.user_dashboard_view, name='user_dashboard'),
     path('my-complaints/<str:reference_number>/', views.complaint_detail_view, name='complaint_detail'),
     

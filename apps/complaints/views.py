@@ -1,5 +1,7 @@
 import secrets
 import hashlib
+import mimetypes
+from django.http import FileResponse, Http404, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -68,6 +70,7 @@ def track_complaint_view(request):
             token_hash = generate_tracking_token_hash(token)
             try:
                 complaint = Complaint.objects.get(reference_number=ref, tracking_token_hash=token_hash)
+                request.session['tracked_complaint_id'] = complaint.pk
                 return render(request, 'complaints/tracking_result.html', {
                     'complaint': complaint,
                     'show_full_details': False
@@ -81,7 +84,7 @@ def track_complaint_view(request):
 
 @login_required
 def user_dashboard_view(request):
-    user_complaints = Complaint.objects.filter(reporter=request.user).order_by('-created_at')
+    user_complaints = Complaint.objects.filter(reporter=request.user).prefetch_related('attachments').order_by('-created_at')
     return render(request, 'complaints/user_dashboard.html', {
         'complaints': user_complaints,
         'show_full_details': True
@@ -97,9 +100,39 @@ def complaint_detail_view(request, reference_number):
     return render(request, 'complaints/complaint_detail.html', {'complaint': complaint})
 
 
+def attachment_image_view(request, attachment_id):
+    attachment = get_object_or_404(
+        ComplaintAttachment.objects.select_related('complaint'), pk=attachment_id
+    )
+    complaint = attachment.complaint
+    user = request.user
+    authorized = user.is_authenticated and (
+        complaint.reporter_id == user.pk
+        or user.is_estates_admin
+        or (
+            user.is_maintenance_worker
+            and WorkAssignment.objects.filter(complaint=complaint, officer=user).exists()
+        )
+    )
+    tracked_anonymously = request.session.get('tracked_complaint_id') == complaint.pk
+    if not authorized and not tracked_anonymously:
+        return HttpResponseForbidden()
+
+    try:
+        image_file = attachment.file.open('rb')
+    except (OSError, ValueError):
+        raise Http404('Complaint image is unavailable.')
+
+    content_type = mimetypes.guess_type(attachment.file.name)[0] or 'application/octet-stream'
+    response = FileResponse(image_file, content_type=content_type)
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
+
 @estates_admin_required
 def management_complaints_view(request):
-    complaints = Complaint.objects.all().select_related('category', 'location', 'reporter').order_by('-created_at')
+    complaints = Complaint.objects.all().select_related('category', 'location', 'reporter').prefetch_related('attachments').order_by('-created_at')
     return render(request, 'complaints/management_complaints.html', {'complaints': complaints})
 
 
@@ -149,7 +182,7 @@ def assign_complaint_view(request, complaint_id):
 def officer_dashboard_view(request):
     assignments = WorkAssignment.objects.filter(
         officer=request.user
-    ).select_related('complaint', 'complaint__category', 'complaint__location').order_by('-assigned_at')
+    ).select_related('complaint', 'complaint__category', 'complaint__location').prefetch_related('complaint__attachments').order_by('-assigned_at')
     return render(request, 'complaints/officer_dashboard.html', {'assignments': assignments})
 
 

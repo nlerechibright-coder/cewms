@@ -44,6 +44,7 @@
                                 <th>Reference</th>
                                 <th>Title</th>
                                 <th>Category</th>
+                                <th>Photo</th>
                                 <th>Status</th>
                                 <th>Date</th>
                                 <th>Actions</th>
@@ -55,6 +56,14 @@
                                     <td>{{ complaint.reference_number }}</td>
                                     <td>{{ complaint.complaint_title|truncatechars:30 }}</td>
                                     <td>{{ complaint.category.name }}</td>
+                                    <td>
+                                        {% for attachment in complaint.attachments.all %}
+                                            <img src="{% url 'complaints:attachment_image' attachment.id %}" alt="Complaint photo" class="complaint-thumbnail" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+                                            <span class="text-muted small" hidden>Unavailable</span>
+                                        {% empty %}
+                                            <span class="text-muted small">No photo</span>
+                                        {% endfor %}
+                                    </td>
                                     <td>
                                         <span class="badge bg-{% if complaint.status == 'SUBMITTED' %}warning{% elif complaint.status == 'ASSIGNED' %}info{% elif complaint.status == 'IN_PROGRESS' %}primary{% elif complaint.status == 'RESOLVED_PENDING_VERIFICATION' %}success{% else %}secondary{% endif %}">
                                             {{ complaint.get_status_display }}
@@ -70,7 +79,7 @@
                                     </td>
                                 </tr>
                             {% empty %}
-                                <tr><td colspan="6" class="text-center text-muted">No complaints found.</td></tr>
+                                <tr><td colspan="7" class="text-center text-muted">No complaints found.</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -78,6 +87,14 @@
             </div>
         </div>
     </div>
+    <style>
+        .complaint-thumbnail {
+            width: 5rem;
+            height: 4rem;
+            max-width: 100%;
+            object-fit: contain;
+        }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
