@@ -73,7 +73,13 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASE_URL = os.getenv('DATABASE_URL', '')
 if DATABASE_URL:
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
+        # Render PostgreSQL requires SSL; do not pass PostgreSQL-only sslmode
+        # options to a local SQLite URL used for development or tests.
+        'default': dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=DATABASE_URL.startswith(('postgres://', 'postgresql://')),
+        )
     }
 else:
     DATABASES = {

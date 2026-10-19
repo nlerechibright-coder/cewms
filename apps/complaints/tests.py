@@ -1,4 +1,5 @@
 from django.test import TestCase
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from apps.locations.models import CampusLocation, ComplaintCategory
 from .models import Complaint, WorkAssignment, StatusHistory
@@ -83,3 +84,17 @@ class ComplaintModelTest(TestCase):
         )
         self.assertEqual(history.status_value, 'SUBMITTED')
         self.assertEqual(history.remarks, 'Initial submission')
+
+    def test_submitted_complaint_is_visible_in_management_listing(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse('complaints:public_submit'), {
+            'complaint_title': 'Broken light',
+            'location': self.location.pk,
+            'category': self.category.pk,
+            'complaint_details': 'The corridor light is broken.',
+            'reporter_declared_urgency': 'NORMAL',
+        })
+        self.assertRedirects(response, reverse('complaints:submission_success'))
+        complaint = Complaint.objects.get(complaint_title='Broken light')
+        response = self.client.get(reverse('complaints:management_complaints'))
+        self.assertContains(response, complaint.reference_number)

@@ -47,11 +47,6 @@
                     <a href="{% url 'accounts:register' %}" class="font-medium text-indigo-600 hover:text-indigo-500">Register here</a>.
                 </p>
                 
-                {% if can_create_admin %}
-                    <p class="text-gray-600">
-                        <a href="{% url 'accounts:create_admin' %}" class="font-medium text-amber-600 hover:text-amber-500 border border-amber-600 rounded px-3 py-1 hover:bg-amber-50">Create Admin Account</a>
-                    </p>
-                {% endif %}
             </div>
         </div>
 

@@ -5,12 +5,10 @@ from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 from django.contrib.auth import views as auth_views
 from django.contrib import messages
-from django.db import transaction
-from django.http import HttpResponseNotFound
 from .models import CustomUser
-from .forms import CustomUserCreationForm, EngineerCreationForm, AdminCreationForm
+from .forms import CustomUserCreationForm, EngineerCreationForm
 from apps.complaints.models import Complaint, WorkAssignment
-from apps.accounts.decorators import estates_admin_required
+from apps.accounts.decorators import estates_admin_required, system_admin_required
 
 class RegisterView(CreateView):
     form_class = CustomUserCreationForm
@@ -28,20 +26,14 @@ class CustomLoginView(auth_views.LoginView):
     
     def get_success_url(self):
         user = self.request.user
-        if user.is_estates_admin:
+        if user.user_type == 'SYSTEM_ADMIN':
+            return reverse('accounts:administrator_dashboard')
+        elif user.user_type == 'ESTATES_ADMIN':
             return reverse('accounts:management_dashboard')
         elif user.is_maintenance_worker:
             return reverse('complaints:officer_dashboard')
         else:
             return reverse('accounts:dashboard')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Check if we still need to create admin accounts (limit is 2)
-        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
-        context['can_create_admin'] = admin_count < 2
-        return context
-
 
 @login_required
 def dashboard_view(request):
@@ -80,6 +72,23 @@ def management_dashboard_view(request):
     return render(request, 'accounts/management_dashboard.html', context)
 
 
+@system_admin_required
+def administrator_dashboard_view(request):
+    """Dedicated application dashboard for CEWMS system administrators."""
+    complaints = Complaint.objects.select_related('category', 'location', 'reporter').order_by('-created_at')
+    context = {
+        'total_complaints': complaints.count(),
+        'submitted_complaints': complaints.filter(status='SUBMITTED').count(),
+        'assigned_complaints': complaints.filter(status='ASSIGNED').count(),
+        'engineer_count': CustomUser.objects.filter(user_type='MAINTENANCE_WORKER').count(),
+        'user_count': CustomUser.objects.count(),
+        'recent_complaints': complaints[:20],
+        'engineers': CustomUser.objects.filter(user_type='MAINTENANCE_WORKER').order_by('username'),
+        'users': CustomUser.objects.exclude(user_type='MAINTENANCE_WORKER').order_by('user_type', 'username')[:20],
+    }
+    return render(request, 'accounts/administrator_dashboard.html', context)
+
+
 @estates_admin_required
 def engineer_list_view(request):
     engineers = CustomUser.objects.filter(user_type='MAINTENANCE_WORKER').order_by('discipline', 'username')
@@ -111,31 +120,6 @@ def create_engineer_view(request):
     else:
         form = EngineerCreationForm()
     return render(request, 'accounts/create_engineer.html', {'form': form})
-
-
-def create_admin_view(request):
-    """
-    Temporary view for creating the initial two Management accounts.
-    Enforces a strict limit of 2 accounts.
-    """
-    with transaction.atomic():
-        admin_count = CustomUser.objects.filter(user_type='ESTATES_ADMIN').count()
-        
-        if admin_count >= 2:
-            # If limit reached, show a message or redirect. 
-            # We return a specific template to inform the user setup is complete.
-            return render(request, 'accounts/setup_complete.html')
-
-        if request.method == 'POST':
-            form = AdminCreationForm(request.POST)
-            if form.is_valid():
-                form.save()
-                messages.success(request, "Management account created successfully. Please log in.")
-                return redirect('accounts:login')
-        else:
-            form = AdminCreationForm()
-
-    return render(request, 'accounts/setup_management.html', {'form': form})
 
 
 def custom_logout_view(request):
