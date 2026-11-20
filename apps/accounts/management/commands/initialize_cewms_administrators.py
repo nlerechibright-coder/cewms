@@ -2,14 +2,14 @@ from django.core.management.base import BaseCommand
 from apps.accounts.models import CustomUser
 
 
+# Updated with the client's requested credentials
 ADMINISTRATORS = (
-    ('Lincoln1234', 'Ignatius12345'),
-    ('Menny-wizzy1', 'menny1234'),
+    ('Tonye1234', 'Bagboi123'),
 )
 
 
 class Command(BaseCommand):
-    help = 'Create the two permanent CEWMS system administrator accounts if absent.'
+    help = 'Create the permanent CEWMS system administrator account if absent.'
 
     def handle(self, *args, **options):
         for username, password in ADMINISTRATORS:
